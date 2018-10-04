@@ -28,10 +28,8 @@ def get_folds(df=None, n_splits=5):
     return fold_ids
 
 def main():
-    train = pd.read_csv(os.path.join('..', 'input', 'train.gz'),
-                        dtype={'date': str, 'fullVisitorId': str, 'sessionId':str}, nrows=None)
-    test = pd.read_csv(os.path.join('..', 'input', 'test.gz'),
-                       dtype={'date': str, 'fullVisitorId': str, 'sessionId':str}, nrows=None)
+    train = pd.read_pickle(os.path.join('..', 'input', 'train_fe.pkl'))
+    test = pd.read_pickle(os.path.join('..', 'input', 'test_fe.pkl'))
 
     excluded_features = [
         'date', 'fullVisitorId', 'sessionId', 'totals.transactionRevenue',

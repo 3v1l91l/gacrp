@@ -176,33 +176,33 @@ def source_mapping(x):
 
 def process_device(data_df):
     print("process device ...")
-    data_df['source.country'] = data_df['trafficSource.source'] + '_' + data_df['geoNetwork.country']
-    data_df['campaign.medium'] = data_df['trafficSource.campaign'] + '_' + data_df['trafficSource.medium']
-    data_df['browser.category'] = data_df['device.browser'] + '_' + data_df['device.deviceCategory']
-    data_df['browser.os'] = data_df['device.browser'] + '_' + data_df['device.operatingSystem']
+    data_df['source_country'] = data_df['trafficSource_source'] + '_' + data_df['geoNetwork_country']
+    data_df['campaign_medium'] = data_df['trafficSource_campaign'] + '_' + data_df['trafficSource_medium']
+    data_df['browser_category'] = data_df['device_browser'] + '_' + data_df['device_deviceCategory']
+    data_df['browser_os'] = data_df['device_browser'] + '_' + data_df['device_operatingSystem']
     return data_df
 
 def custom(data):
     print('custom..')
-    data['device_deviceCategory_channelGrouping'] = data['device.deviceCategory'] + "_" + data['channelGrouping']
-    data['channelGrouping_browser'] = data['device.browser'] + "_" + data['channelGrouping']
-    data['channelGrouping_OS'] = data['device.operatingSystem'] + "_" + data['channelGrouping']
+    data['device_deviceCategory_channelGrouping'] = data['device_deviceCategory'] + "_" + data['channelGrouping']
+    data['channelGrouping_browser'] = data['device_browser'] + "_" + data['channelGrouping']
+    data['channelGrouping_OS'] = data['device_operatingSystem'] + "_" + data['channelGrouping']
 
-    for i in ['geoNetwork.city', 'geoNetwork.continent', 'geoNetwork.country', 'geoNetwork.metro',
-              'geoNetwork.networkDomain', 'geoNetwork.region', 'geoNetwork.subContinent']:
-        for j in ['device.browser', 'device.deviceCategory', 'device.operatingSystem', 'trafficSource.source']:
+    for i in ['geoNetwork_city', 'geoNetwork_continent', 'geoNetwork_country', 'geoNetwork_metro',
+              'geoNetwork_networkDomain', 'geoNetwork_region', 'geoNetwork_subContinent']:
+        for j in ['device_browser', 'device_deviceCategory', 'device_operatingSystem', 'trafficSource_source']:
             data[i + "_" + j] = data[i] + "_" + data[j]
 
-    data['content.source'] = data['trafficSource.adContent'] + "_" + data['source.country']
-    data['medium.source'] = data['trafficSource.medium'] + "_" + data['source.country']
+    data['content_source'] = data['trafficSource_adContent'] + "_" + data['source_country']
+    data['medium_source'] = data['trafficSource_medium'] + "_" + data['source_country']
     return data
 
 def timezone_conv(train, test):
     geocode_df = pd.read_pickle(os.path.join('..', 'input', 'geocodes_timezones.pkl'))
-    train['_search_term'] = train['geoNetwork.city'].map(remove_missing_vals) + ' ' + train['geoNetwork.region'].map(
-        remove_missing_vals) + ' ' + train['geoNetwork.country'].map(remove_missing_vals)
-    test['_search_term'] = test['geoNetwork.city'].map(remove_missing_vals) + ' ' + test['geoNetwork.region'].map(
-        remove_missing_vals) + ' ' + test['geoNetwork.country'].map(remove_missing_vals)
+    train['_search_term'] = train['geoNetwork_city'].map(remove_missing_vals) + ' ' + train['geoNetwork_region'].map(
+        remove_missing_vals) + ' ' + train['geoNetwork_country'].map(remove_missing_vals)
+    test['_search_term'] = test['geoNetwork_city'].map(remove_missing_vals) + ' ' + test['geoNetwork_region'].map(
+        remove_missing_vals) + ' ' + test['geoNetwork_country'].map(remove_missing_vals)
 
     global timezone_dict
     timezone_dict = dict(zip(geocode_df['search_term'], geocode_df['timeZoneId']))
@@ -219,17 +219,19 @@ def timezone_conv(train, test):
     del train['_search_term']
     del test['_search_term']
 
+    return train, test
+
 def cat_conv(train, test):
-    train['device.browser'] = train['device.browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
-    train['trafficSource.adContent'] = train['trafficSource.adContent'].map(
+    train['device_browser'] = train['device_browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
+    train['trafficSource_adContent'] = train['trafficSource_adContent'].map(
         lambda x: adcontents_mapping(str(x).lower())).astype('str')
-    train['trafficSource.source'] = train['trafficSource.source'].map(lambda x: source_mapping(str(x).lower())).astype(
+    train['trafficSource_source'] = train['trafficSource_source'].map(lambda x: source_mapping(str(x).lower())).astype(
         'str')
 
-    test['device.browser'] = test['device.browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
-    test['trafficSource.adContent'] = test['trafficSource.adContent'].map(
+    test['device_browser'] = test['device_browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
+    test['trafficSource_adContent'] = test['trafficSource_adContent'].map(
         lambda x: adcontents_mapping(str(x).lower())).astype('str')
-    test['trafficSource.source'] = test['trafficSource.source'].map(lambda x: source_mapping(str(x).lower())).astype(
+    test['trafficSource_source'] = test['trafficSource_source'].map(lambda x: source_mapping(str(x).lower())).astype(
         'str')
 
     train = process_device(train)
@@ -237,33 +239,33 @@ def cat_conv(train, test):
     train = custom(train)
     test = custom(test)
 
+    return train, test
+
+def numeric_interaction_terms(df, columns):
+    for c in combinations(columns, 2):
+        df['{} / {}'.format(c[0], c[1])] = df[c[0]] / df[c[1]]
+        df['{} * {}'.format(c[0], c[1])] = df[c[0]] * df[c[1]]
+        df['{} - {}'.format(c[0], c[1])] = df[c[0]] - df[c[1]]
+    return df
+
 def main(nrows=None):
-    train = pd.read_csv('../input/extracted_fields_train.gz',
-                        dtype={'date': str, 'fullVisitorId': str, 'sessionId':str}, nrows=nrows)
-    test = pd.read_csv('../input/extracted_fields_test.gz',
-                       dtype={'date': str, 'fullVisitorId': str, 'sessionId':str}, nrows=nrows)
+    train = pd.read_pickle('../input/train_ext_json.pkl')
+    test = pd.read_pickle('../input/test_ext_json.pkl')
 
-    train['totals.transactionRevenue'] = train['totals.transactionRevenue'].fillna(0)
-    if 'totals.transactionRevenue' in test.columns:
-        del test['totals.transactionRevenue']
+    train['totals_transactionRevenue'] = train['totals_transactionRevenue'].fillna(0)
+    if 'totals_transactionRevenue' in test.columns:
+        del test['totals_transactionRevenue']
 
-    timezone_conv(train, test)
-    cat_conv(train, test)
+    train, test = timezone_conv(train, test)
+    # train, test = cat_conv(train, test)
 
-    to_interact_cols = ['visitNumber', 'totals.hits', 'totals.pageviews']
-
-    def numeric_interaction_terms(df, columns):
-        for c in combinations(columns, 2):
-            df['{} / {}'.format(c[0], c[1])] = df[c[0]] / df[c[1]]
-            df['{} * {}'.format(c[0], c[1])] = df[c[0]] * df[c[1]]
-            df['{} - {}'.format(c[0], c[1])] = df[c[0]] - df[c[1]]
-        return df
+    to_interact_cols = ['visitNumber', 'totals_hits', 'totals_pageviews']
 
     train = numeric_interaction_terms(train, to_interact_cols)
     test = numeric_interaction_terms(test, to_interact_cols)
 
-    train.to_csv(os.path.join('..', 'input', 'train.gz'), compression='gzip', index=False)
-    test.to_csv(os.path.join('..', 'input', 'test.gz'), compression='gzip', index=False)
+    train.to_pickle(os.path.join('..', 'input', 'train_fe.pkl'))
+    test.to_pickle(os.path.join('..', 'input', 'test_fe.pkl'))
 
 if __name__ == '__main__':
     main()
