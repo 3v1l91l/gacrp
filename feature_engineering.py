@@ -203,7 +203,7 @@ def geo(data):
     for i in ['geoNetwork_city', 'geoNetwork_continent', 'geoNetwork_country', 'geoNetwork_metro',
               'geoNetwork_networkDomain', 'geoNetwork_region', 'geoNetwork_subContinent']:
         for j in ['device_browser', 'device_deviceCategory', 'device_operatingSystem',
-                  'ts_day_of_week', 'channelGrouping', 'trafficSource_medium']:
+                  'day_of_week', 'channelGrouping', 'trafficSource_medium']:
             data['fe_' + i + "_" + j] = data[i] + "_" + data[j]
 
     return data
@@ -212,7 +212,7 @@ def traffic_source(data):
     print('trafficSource')
     for i in ['trafficSource_source']:
         for j in ['device_browser', 'device_deviceCategory', 'device_operatingSystem',
-                  'ts_day_of_week', 'channelGrouping', 'trafficSource_medium',
+                  'day_of_week', 'channelGrouping', 'trafficSource_medium',
                   'geoNetwork_city', 'geoNetwork_continent', 'geoNetwork_country', 'geoNetwork_metro',
                   'geoNetwork_networkDomain', 'geoNetwork_region', 'geoNetwork_subContinent'
                   ]:
@@ -221,57 +221,51 @@ def traffic_source(data):
     return data
 
 
-def extract_time(df):
-    # df['ts_day_of_week'] = df['date'].map(lambda x: x.weekday()).astype('str')
-    df['ts_day_of_week'] = df['visit_ts'].map(lambda x: x.strftime('%A')).astype('str')
-    df['ts_hour_of_day_int'] = df['visit_ts'].map(lambda x: x.strftime('%H')).astype('int8')
-    # df['ts_day_of_month'] = df['visit_ts'].map(lambda x: x.strftime('%d')).astype('str')
-    # df['ts_month'] = df['visit_ts'].map(lambda x: x.strftime('%d')).astype('str')
+# def extract_time(df):
+#     # df['ts_day_of_week'] = df['date'].map(lambda x: x.weekday()).astype('str')
+#     df['ts_day_of_week'] = df['visit_ts'].map(lambda x: x.strftime('%A')).astype('str')
+#     df['ts_hour_of_day_int'] = df['visit_ts'].map(lambda x: x.strftime('%H')).astype('int8')
+#     # df['ts_day_of_month'] = df['visit_ts'].map(lambda x: x.strftime('%d')).astype('str')
+#     # df['ts_month'] = df['visit_ts'].map(lambda x: x.strftime('%d')).astype('str')
+#
+#     return df
+#
+# def timezone_conv(train, test):
+#     geocode_df = pd.read_pickle(os.path.join('..', 'input', 'geocodes_timezones.pkl'))
+#     train['_search_term'] = train['geoNetwork_city'].map(remove_missing_vals) + ' ' + train['geoNetwork_region'].map(
+#         remove_missing_vals) + ' ' + train['geoNetwork_country'].map(remove_missing_vals)
+#     test['_search_term'] = test['geoNetwork_city'].map(remove_missing_vals) + ' ' + test['geoNetwork_region'].map(
+#         remove_missing_vals) + ' ' + test['geoNetwork_country'].map(remove_missing_vals)
+#
+#     global timezone_dict
+#     timezone_dict = dict(zip(geocode_df['search_term'], geocode_df['timeZoneId']))
+#
+#     train['_timeZoneId'] = train['_search_term'].map(map_timezone)
+#     test['_timeZoneId'] = test['_search_term'].map(map_timezone)
+#
+#     train['visit_ts'] = train[['visitStartTime', '_timeZoneId']].apply(time_localizer, axis = 1)
+#     test['visit_ts'] = test[['visitStartTime', '_timeZoneId']].apply(time_localizer, axis = 1)
+#
+#     train = extract_time(train)
+#     test = extract_time(test)
+#
+#     del train['_search_term']
+#     del test['_search_term']
+#     del train['visit_ts']
+#     del test['visit_ts']
+#
+#     return train, test
+
+def cat_conv(df):
+    df['device_browser'] = df['device_browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
+    df['trafficSource_adContent'] = df['trafficSource_adContent'].map(
+        lambda x: adcontents_mapping(str(x).lower())).astype('str')
+    df['trafficSource_source'] = df['trafficSource_source'].map(lambda x: source_mapping(str(x).lower())).astype(
+        'str')
+    df['device_operatingSystem'] = df['device_operatingSystem'].map(lambda x: device_mapping(str(x).lower())).astype(
+        'str')
 
     return df
-
-def timezone_conv(train, test):
-    geocode_df = pd.read_pickle(os.path.join('..', 'input', 'geocodes_timezones.pkl'))
-    train['_search_term'] = train['geoNetwork_city'].map(remove_missing_vals) + ' ' + train['geoNetwork_region'].map(
-        remove_missing_vals) + ' ' + train['geoNetwork_country'].map(remove_missing_vals)
-    test['_search_term'] = test['geoNetwork_city'].map(remove_missing_vals) + ' ' + test['geoNetwork_region'].map(
-        remove_missing_vals) + ' ' + test['geoNetwork_country'].map(remove_missing_vals)
-
-    global timezone_dict
-    timezone_dict = dict(zip(geocode_df['search_term'], geocode_df['timeZoneId']))
-
-    train['_timeZoneId'] = train['_search_term'].map(map_timezone)
-    test['_timeZoneId'] = test['_search_term'].map(map_timezone)
-
-    train['visit_ts'] = train[['visitStartTime', '_timeZoneId']].apply(time_localizer, axis = 1)
-    test['visit_ts'] = test[['visitStartTime', '_timeZoneId']].apply(time_localizer, axis = 1)
-
-    train = extract_time(train)
-    test = extract_time(test)
-
-    del train['_search_term']
-    del test['_search_term']
-    del train['visit_ts']
-    del test['visit_ts']
-
-    return train, test
-
-def cat_conv(train, test):
-    train['device_browser'] = train['device_browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
-    train['trafficSource_adContent'] = train['trafficSource_adContent'].map(
-        lambda x: adcontents_mapping(str(x).lower())).astype('str')
-    train['trafficSource_source'] = train['trafficSource_source'].map(lambda x: source_mapping(str(x).lower())).astype(
-        'str')
-
-    test['device_browser'] = test['device_browser'].map(lambda x: browser_mapping(str(x).lower())).astype('str')
-    test['trafficSource_adContent'] = test['trafficSource_adContent'].map(
-        lambda x: adcontents_mapping(str(x).lower())).astype('str')
-    test['trafficSource_source'] = test['trafficSource_source'].map(lambda x: source_mapping(str(x).lower())).astype(
-        'str')
-    test['device_operatingSystem'] = test['device_operatingSystem'].map(lambda x: device_mapping(str(x).lower())).astype(
-        'str')
-
-    return train, test
 
 def numeric_interaction_terms(df):
     # df['totals_pageviews / totals_hits'] = df['totals_pageviews'] / df['totals_hits']
@@ -289,8 +283,6 @@ def drop_cols(train, test):
 
     return train, test
 
-
-
 def categories_in_both(train, test):
     cats = ['device_browser', 'device_deviceCategory',
     'device_operatingSystem', 'geoNetwork_city', 'geoNetwork_continent',
@@ -298,7 +290,6 @@ def categories_in_both(train, test):
     'geoNetwork_region', 'geoNetwork_subContinent',
     'trafficSource_adContent', 'trafficSource_campaign',
     'trafficSource_keyword', 'trafficSource_medium',
-    '_timeZoneId',
     'trafficSource_referralPath', 'trafficSource_source']
     for c in cats:
         print(c)
@@ -310,7 +301,7 @@ def categories_in_both(train, test):
 
     return train, test
 
-def date(df):
+def aggrs(df):
     mean_cols = ['totals_hits', 'totals_pageviews']
     gr = df[mean_cols + ['date']].groupby(['date'])
     agg = gr.agg('mean')
@@ -345,11 +336,10 @@ def date(df):
     agg.columns = ['sum_country_' + x for x in agg.columns]
     df = df.merge(agg, left_on='geoNetwork_country', right_index=True)
 
-
     return df
 
 def target_encoding(train, test):
-    encode_cols = ['geoNetwork_country', 'trafficSource_source', '_timeZoneId']
+    encode_cols = ['geoNetwork_country', 'trafficSource_source', 'geoNetwork_city']
     for col in encode_cols:
         gr = train[['totals_transactionRevenue'] + [col]].groupby(col)
         agg = gr.agg('mean')
@@ -376,6 +366,12 @@ def ref_path(train, test):
 
     return train, test
 
+def date(df):
+    df['day_of_week'] = df['date'].dt.dayofweek
+    df['day_hour'] = df['date'].dt.hour
+
+    return df
+
 def main(nrows=None):
     train = pd.read_pickle('../input/train_ext_json.pkl')
     test = pd.read_pickle('../input/test_ext_json.pkl')
@@ -383,8 +379,9 @@ def main(nrows=None):
     train['totals_transactionRevenue'] = train['totals_transactionRevenue'].fillna(0)
     if 'totals_transactionRevenue' in test.columns:
         del test['totals_transactionRevenue']
-    train, test = timezone_conv(train, test)
-    train, test = cat_conv(train, test)
+    # train, test = timezone_conv(train, test)
+    train = cat_conv(train)
+    test = cat_conv(test)
 
     # train = process_device(train)
     # test = process_device(test)
@@ -392,6 +389,8 @@ def main(nrows=None):
     # test = geo(test)
     # train = traffic_source(train)
     # test = traffic_source(test)
+    train = aggrs(train)
+    test = aggrs(test)
     train = date(train)
     test = date(test)
     train, test = categories_in_both(train, test)

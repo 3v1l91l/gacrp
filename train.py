@@ -95,7 +95,7 @@ def session_level(train, test, train_features, categorical_features):
     mse_session = mean_squared_error(np.log1p(y_reg), oof_reg_preds) ** .5
     print('mse_session {}'.format(mse_session))
     ln =np.log1p(y_reg)
-    mse_user_lb = mean_squared_error(y_reg[ln < 18.3], oof_reg_preds[ln < 18.3]) ** .5
+    mse_user_lb = mean_squared_error(ln[ln < 18.3], oof_reg_preds[ln < 18.3]) ** .5
     print('mse_session LB: {}'.format(mse_user_lb))
 
     pd.DataFrame(data={'pred': oof_reg_preds}).to_csv('sess_pred.csv')
