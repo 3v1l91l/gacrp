@@ -36,19 +36,19 @@ def main():
         'date', 'fullVisitorId', 'sessionId', 'totals_transactionRevenue',
         'visitId', 'visitStartTime'
     ]
-    categorical_features = ['channelGrouping', 'device_browser', 'device_deviceCategory', 'device_operatingSystem', 'geoNetwork_city', 'geoNetwork_continent', 'geoNetwork_metro', 'geoNetwork_networkDomain', 'geoNetwork_region', 'geoNetwork_subContinent', 'trafficSource_medium', 'trafficSource_referralPath', 'ts_day_of_week']
-    # categorical_features = [
-    #     _f for _f in train.columns
-    #     if (_f not in excluded_features) & (train[_f].dtype == 'object')
-    # ]
-    # for f in categorical_features:
-    #     train[f], indexer = pd.factorize(train[f])
-    #     test[f] = indexer.get_indexer(test[f])
+    # categorical_features = ['channelGrouping', 'device_browser', 'device_deviceCategory', 'device_operatingSystem', 'geoNetwork_city', 'geoNetwork_continent', 'geoNetwork_metro', 'geoNetwork_networkDomain', 'geoNetwork_region', 'geoNetwork_subContinent', 'trafficSource_medium', 'trafficSource_referralPath', 'ts_day_of_week']
+    categorical_features = [
+        _f for _f in train.columns
+        if (_f not in excluded_features) & (train[_f].dtype == 'object')
+    ]
+    for f in categorical_features:
+        train[f], indexer = pd.factorize(train[f])
+        test[f] = indexer.get_indexer(test[f])
 
     train_features = [_f for _f in train.columns if _f not in excluded_features]
     # print(train_features)
 
-    # session_level(train, test, train_features, categorical_features)
+    session_level(train, test, train_features, categorical_features)
     user_level(train_features, categorical_features)
 
 def session_level(train, test, train_features, categorical_features):
@@ -165,7 +165,8 @@ def user_level(train_features, categorical_features):
             eval_names=['TRAIN', 'VALID'],
             early_stopping_rounds=50,
             eval_metric='rmse',
-            verbose=100
+            verbose=100,
+            categorical_feature=categorical_features
         )
 
         importances['gain'] = reg.booster_.feature_importance(importance_type='gain') / n_splits
@@ -185,7 +186,7 @@ def user_level(train_features, categorical_features):
     print('mse_user LB: {}'.format(mse_user_lb))
 
     importances.to_csv('importance_user.csv')
-    plt.figure(figsize=(8, 25))
+    plt.figure(figsize=(20, 25))
     sns.barplot(x='gain', y='feature', data=importances.sort_values('gain', ascending=False).iloc[:300])
     plt.savefig('importances_user' + '.png')
 

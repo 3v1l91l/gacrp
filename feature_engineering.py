@@ -274,7 +274,7 @@ def cat_conv(train, test):
     return train, test
 
 def numeric_interaction_terms(df):
-    df['totals_pageviews / totals_hits'] = df['totals_pageviews'] / df['totals_hits']
+    # df['totals_pageviews / totals_hits'] = df['totals_pageviews'] / df['totals_hits']
     df['visitNumber * totals_pageviews'] = df['visitNumber'] * df['totals_pageviews']
     df['visitNumber * totals_hits'] = df['visitNumber'] * df['totals_hits']
     df['visitNumber * totals_pageviews / totals_hits'] = df['visitNumber'] * df['totals_pageviews'] / df['totals_hits']
@@ -362,6 +362,19 @@ def target_encoding(train, test):
 
     return train, test
 
+def ref_path(train, test):
+    for df in [train, test]:
+        df['trafficSource_referralPath'] = df['trafficSource_referralPath'].apply(
+            lambda s: s + '/' if s[-1] != '/' else s)
+        df.loc[train['trafficSource_referralPath'].apply(
+            lambda s: 'yt/about' in s), 'trafficSource_referralPath'] = '/yt/about/'
+        df['trafficSource_referralPath'] = df['trafficSource_referralPath'].apply(lambda s: s.split('/')[-2])
+    c = 'trafficSource_referralPath'
+    intersect = np.intersect1d(train[c].unique(), test[c].unique())
+    train.loc[~train[c].isin(intersect), c] = 'others'
+    test.loc[~test[c].isin(intersect), c] = 'others'
+
+    return train, test
 
 def main(nrows=None):
     train = pd.read_pickle('../input/train_ext_json.pkl')
@@ -382,6 +395,7 @@ def main(nrows=None):
     train = date(train)
     test = date(test)
     train, test = categories_in_both(train, test)
+    train, test = ref_path(train, test)
     train, test = target_encoding(train, test)
     train, test = drop_cols(train, test)
 
