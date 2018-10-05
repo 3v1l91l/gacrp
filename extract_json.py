@@ -118,6 +118,10 @@ def develop_json_fields(df=None):
         logger.info('{} fields extracted'.format(json_field))
     return df
 
+def drop_cols(train, test):
+    drop_cols = ['date', 'socialEngagementType']
+    train.drop(drop_cols, axis=1, inplace=True)
+    test.drop(drop_cols, axis=1, inplace=True)
 
 def main(nrows=None):
     # Convert train
